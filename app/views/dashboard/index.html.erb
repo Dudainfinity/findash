@@ -1,0 +1,64 @@
+<% content_for :title, "Dashboard Financeiro" %>
+
+<div class="cards">
+  <div class="stat income">
+    <span class="label">Receitas</span>
+    <span class="value"><%= Transaction.format_brl(@income) %></span>
+  </div>
+  <div class="stat expense">
+    <span class="label">Despesas</span>
+    <span class="value"><%= Transaction.format_brl(@expense) %></span>
+  </div>
+  <div class="stat balance <%= @balance.negative? ? "neg" : "pos" %>">
+    <span class="label">Saldo</span>
+    <span class="value"><%= Transaction.format_brl(@balance) %></span>
+  </div>
+</div>
+
+<div class="charts">
+  <div class="panel">
+    <h3>Receitas x Despesas (6 meses)</h3>
+    <%= column_chart [
+          { name: "Receitas", data: @monthly.map { |m| [m[:month], m[:income]] } },
+          { name: "Despesas", data: @monthly.map { |m| [m[:month], m[:expense]] } }
+        ], colors: ["#22c55e", "#ef4444"], height: "260px", library: { plugins: { legend: { labels: { color: "#cbd5e1" } } } } %>
+  </div>
+  <div class="panel">
+    <h3>Gastos por categoria</h3>
+    <%= pie_chart @by_category, donut: true, height: "260px",
+          colors: ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#0ea5e9", "#8b5cf6", "#ef4444", "#64748b"] %>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="panel form-panel">
+    <h3>Novo lançamento</h3>
+    <%= form_with model: @transaction, url: transactions_path do |f| %>
+      <%= f.text_field :description, placeholder: "Descrição", required: true %>
+      <div class="row">
+        <%= f.number_field :amount, step: "0.01", min: "0", placeholder: "Valor (R$)", required: true %>
+        <%= f.select :kind, [["Receita", "income"], ["Despesa", "expense"]] %>
+      </div>
+      <div class="row">
+        <%= f.select :category, Transaction::CATEGORIES %>
+        <%= f.date_field :occurred_on %>
+      </div>
+      <%= f.submit "Adicionar", class: "btn" %>
+    <% end %>
+  </div>
+
+  <div class="panel">
+    <h3>Lançamentos recentes</h3>
+    <table class="tx-table">
+      <% @recent.each do |t| %>
+        <tr>
+          <td><%= t.description %></td>
+          <td class="cat"><%= t.category %></td>
+          <td class="amt <%= t.income? ? "in" : "out" %>">
+            <%= t.income? ? "+" : "−" %> <%= Transaction.format_brl(t.amount_cents) %>
+          </td>
+        </tr>
+      <% end %>
+    </table>
+  </div>
+</div>
